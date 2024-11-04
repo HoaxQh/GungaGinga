@@ -1,0 +1,168 @@
+// App.js
+import React, { useState, useEffect } from 'react';
+import './styles.css';
+
+const floorData = {
+  1: [
+    { id: 1, type: 'Lab', name: 'Programming Lab', info: 'Lab for programming languages', x: 20, y: 20 },
+    { id: 2, type: 'Lab', name: 'Networking Lab', info: 'Lab for networking and security', x: 120, y: 20 },
+    { id: 3, type: 'Classroom', name: 'CS 101', info: 'Introduction to Computer Science', x: 20, y: 120 },
+    { id: 4, type: 'Classroom', name: 'CS 102', info: 'Data Structures and Algorithms', x: 120, y: 120 },
+    { id: 5, type: 'Office', name: 'Dr. Mohammed AL-Amrani', info: 'Faculty Office - Major: CS\nPhone: 9665345663', x: 20, y: 320 }
+  ],
+  2: [
+    { id: 6, type: 'Lab', name: 'Machine Learning Lab', info: 'Lab for AI and ML experiments', x: 20, y: 20 },
+    { id: 7, type: 'Classroom', name: 'CS 201', info: 'Computer Architecture', x: 20, y: 120 },
+    { id: 8, type: 'Classroom', name: 'CS 301', info: 'Software Engineering', x: 120, y: 120 },
+    { id: 9, type: 'Office', name: 'Office 3', info: 'Faculty Office 3', x: 220, y: 320 },
+    { id: 10, type: 'Classroom', name: 'CS 401', info: 'Artificial Intelligence', x: 320, y: 220 }
+  ]
+};
+
+const Room = ({ room, onClick, isVisible }) => (
+  isVisible && (
+    <rect
+      x={room.x}
+      y={room.y}
+      width="80"
+      height="40"
+      className={`room ${room.type.toLowerCase()}`}
+      onClick={() => onClick(room)}
+    >
+      <title>{room.name}</title>
+    </rect>
+  )
+);
+
+const Map = () => {
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [floor, setFloor] = useState(1);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [filter, setFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
+
+  const handleRoomClick = (room) => setSelectedRoom(room);
+  const handleClose = () => setSelectedRoom(null);
+
+  const zoomIn = () => setZoomLevel((prevZoom) => Math.min(prevZoom + 0.1, 2));
+  const zoomOut = () => setZoomLevel((prevZoom) => Math.max(prevZoom - 0.1, 0.5));
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const toggleSearch = () => setIsSearchOpen(!isSearchOpen);
+  
+  const handleFloorChange = (floorNumber) => {
+    setFloor(floorNumber);
+    setSelectedRoom(null);
+  };
+
+  const handleFilterChange = (type) => {
+    setFilter(type);
+    setSearchQuery('');
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const isRoomVisible = (room) => {
+    if (filter !== 'All' && room.type !== filter) return false;
+    if (searchQuery && !room.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  };
+
+  const handleMouseDown = (event) => {
+    setIsDragging(true);
+    setStartPosition({ x: event.clientX - mapPosition.x, y: event.clientY - mapPosition.y });
+  };
+
+  const handleMouseMove = (event) => {
+    if (isDragging) {
+      const x = event.clientX - startPosition.x;
+      const y = event.clientY - startPosition.y;
+      setMapPosition({ x, y });
+    }
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  return (
+    <div className="map-container">
+      <div className={`menu-bar ${isMenuOpen ? 'open' : ''}`} onClick={toggleMenu}>
+        <p>Menu</p>
+        {isMenuOpen && (
+          <div className="menu-content">
+            <h3>Navigation</h3>
+            <p>Option 1</p>
+            <p>Option 2</p>
+            <p>Option 3</p>
+          </div>
+        )}
+      </div>
+      <svg
+        className="map-svg"
+        viewBox="0 0 520 400"
+        style={{ transform: `scale(${zoomLevel}) translate(${mapPosition.x}px, ${mapPosition.y}px)` }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {floorData[floor].map((room) => (
+          <Room
+            key={room.id}
+            room={room}
+            onClick={handleRoomClick}
+            isVisible={isRoomVisible(room)}
+          />
+        ))}
+      </svg>
+      {selectedRoom && (
+        <div className="room-info">
+          <button onClick={handleClose}>&times;</button>
+          <h2>{selectedRoom.name}</h2>
+          <p>Type: {selectedRoom.type}</p>
+          <p>{selectedRoom.info}</p>
+        </div>
+      )}
+      <div className="legend">
+        <div className="legend-item"><span className="legend-color lab"></span> Lab</div>
+        <div className="legend-item"><span className="legend-color classroom"></span> Classroom</div>
+        <div className="legend-item"><span className="legend-color office"></span> Office</div>
+      </div>
+      <div className="floor-selector">
+        <label><input type="radio" checked={floor === 1} onChange={() => handleFloorChange(1)} /> Floor 1</label>
+        <label><input type="radio" checked={floor === 2} onChange={() => handleFloorChange(2)} /> Floor 2</label>
+      </div>
+      <div className="zoom-controls">
+        <button onClick={zoomIn}>Zoom In</button>
+        <button onClick={zoomOut}>Zoom Out</button>
+      </div>
+      <button className="search-btn" onClick={toggleSearch}>Search</button>
+      {isSearchOpen && (
+        <div className="search-popup">
+          <h3>Filter Rooms</h3>
+          <button onClick={() => handleFilterChange('All')}>All</button>
+          <button onClick={() => handleFilterChange('Classroom')}>Classrooms</button>
+          <button onClick={() => handleFilterChange('Lab')}>Labs</button>
+          <button onClick={() => handleFilterChange('Office')}>Offices</button>
+          <input type="text" placeholder="Search staff..." value={searchQuery} onChange={handleSearchChange} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <div className="App">
+      <h1>CSIT Interactive Map GP</h1>
+      <Map />
+    </div>
+  );
+}
+
+export default App;
